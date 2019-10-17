@@ -1,0 +1,81 @@
+---
+title: "Practice Machine Learning Course Project"
+author: "Evan Thompson"
+date: "10/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+To begin, I loaded the two datasets, and split the larger of the two into a 60%/40% training/testing split. The smaller of the two will be held out entirely and used as a validation set for the very end. Ideally this dataset is larger but for the purposes of this project, that is what will be used.
+
+The question we are trying to address is "Given data on physical activity, can we predict what excerise is the user attempting?" 
+
+It appears we are predicting one of five classes, labeled A-E. Our error rate will be defined as "1 - Accuracy," the % of the predictions which are incorrectly predicted by the model.
+
+```{r include = FALSE}
+#Practical Machine Learning Course Project
+library(caret)
+library(RANN)
+library(tictoc)
+set.seed(1)
+#import
+pml_training <- read.csv("~/Coursera Data Science Specialization/Practical Machine Learning/Coursera-Practical-Machine-Learning/pml-training.csv")
+validation <- read.csv("~/Coursera Data Science Specialization/Practical Machine Learning/pml-testing.csv")
+#partition
+inTrain <- createDataPartition(y=pml_training$classe, p=0.6, list = FALSE)
+training <- pml_training[inTrain,]
+testing <- pml_training[-inTrain,]
+```
+
+In order to navigate through the 160 variables, I first removed the observation number and timestamps from the dataset, along with variables which were missing 95% of their observations or more. It also appears that many of the variables are "near-zero variance," so these were also removed. This resulted in 54 useful possible predictors in the training dataset.
+
+```{r}
+#preprocess
+training <- training[ ,colSums(is.na(training)) < nrow(training)*0.95]#remove cols with many NAs
+training <- training[,-c(1:5)]#do not predict on name or observations number
+testing <- testing[,-c(1:5)]#do not predict on name or observations number
+validation <- validation[,-c(1:5,160)]#do not predict on name or observations number
+nzv <- nearZeroVar(training, saveMetrics = TRUE)#remove low variance predictors
+training <- training[, which(nzv$nzv==FALSE)]
+```
+
+Before attempting any further preprocessing technqiues, such as Principal Component Analysis, or creating additional features, I decided to run a simple random forest model on the data to get an initial sense of the predictive power of the data. Random forests are popular models and typically great at multi-class classification. 
+
+To implement cross validation, I used the trControl() feature of the train() function, and used k-fold cross validation with three folds. My understanding is that k-fold cross validation is typically a safe bet, and while a higher number of folds could be preferable, using a larger number of folds will be computationally expensive when running locally on a machine with memory limitations.
+
+```{r}
+#model (random forest)
+modFit_rf <- train(classe~., 
+                   method = "rf",
+                   trControl = trainControl(method = "cv", number = 3), 
+                   metric = "Accuracy",
+                   data = training)
+print(modFit_rf)
+```
+
+Our in-sample error rate for this simple random forest model appears to be 0.6%. I then applied the model to the testing dataset, to determine out-of-sample error. We should expect this error rate to be larger than the in-sample error rate, since the model is trained on the training data and theoretically is overfit to "noise" from the training data.
+
+```{r}
+#test
+pred_rf <- predict(modFit_rf, testing)
+confusionMatrix(pred_rf, testing$classe)
+```
+
+After testing the model on the test set, we see an out-of-sample error rate of 0.2%. While this is unexpected, it confirms that this model is not overfit to the training data and is a perfectly fine model to move forward with. Thus, we should expect an out-of-sample error rate of under 1%, although I am unable to be more precise than that.
+
+After trying out a few other techniques of preprocessing and experimenting with different models, I did not see a reason to deviate from the original random forest. I then used the model to predict the excerises from the 20 observations in the validation:
+
+
+```{r}
+#apply model to validation set
+val_predictions <- rbind(validation$problem_id, as.character(predict(modFit_rf, validation)))
+val_predictions
+```
+
+
+As you can see, this model accurately predicted 20 out of 20 excersises from the validation set.
