@@ -50,7 +50,7 @@ training <- training[, which(nzv$nzv==FALSE)]
 
 Before attempting any further preprocessing technqiues, such as Principal Component Analysis, or creating additional features, I decided to run a simple random forest model on the data to get an initial sense of the predictive power of the data. Random forests are popular models and typically great at multi-class classification. 
 
-To implement cross validation, I used the trControl() feature of the train() function, and used k-fold cross validation with three folds. My understanding is that k-fold cross validation is typically a safe bet, and while a higher number of folds could be preferable, using a larger number of folds will be computationally expensive when running locally on a machine with memory limitations.
+To implement cross validation, I used the trControl() feature of the train() function, and used k-fold cross validation with three folds. My understanding is that k-fold cross validation is typically a safe bet, and while a larger number of folds could be preferable, using a larger number of folds will be computationally expensive when running locally on a machine with memory limitations.
 
 ```{r}
 #model (random forest)
@@ -63,7 +63,7 @@ modFit_rf <- train(classe~.,
 print(modFit_rf)
 ```
 
-Our in-sample error rate for this simple random forest model appears to be 0.6%. I then applied the model to the testing dataset, to determine out-of-sample error. We should expect this error rate to be larger than the in-sample error rate, since the model is trained on the training data and theoretically is overfit to "noise" from the training data.
+Our in-sample error rate for this simple random forest model appears to be 0.4% (depending on the seed). I then applied the model to the testing dataset, to determine out-of-sample error. We should expect this error rate to be larger than the in-sample error rate, since the model is trained on the training data and theoretically is overfit to "noise" from the training data.
 
 ```{r}
 #test
@@ -73,7 +73,7 @@ confusionMatrix(pred_rf, testing$classe)
 
 After testing the model on the test set, we see an out-of-sample error rate of 0.2%. While this is unexpected, it confirms that this model is not overfit to the training data and is a perfectly fine model to move forward with. Thus, we should expect an out-of-sample error rate of under 1%, although I am unable to be more precise than that.
 
-After trying out a few other techniques of preprocessing and experimenting with different models, I did not see a reason to deviate from the original random forest. I then used the model to predict the excerises from the 20 observations in the validation:
+After trying out a few other techniques of preprocessing and experimenting with different models, I did not see a reason to deviate from the original random forest model. I then used the model to predict the excerises from the 20 observations in the validation set:
 
 
 ```{r}
@@ -84,4 +84,5 @@ val_predictions
 
 
 As you can see, this model accurately predicted 20 out of 20 excersises from the validation set.
+
 
