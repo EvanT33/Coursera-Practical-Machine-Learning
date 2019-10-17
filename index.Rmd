@@ -84,3 +84,4 @@ val_predictions
 
 
 As you can see, this model accurately predicted 20 out of 20 excersises from the validation set.
+
